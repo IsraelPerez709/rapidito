@@ -1,0 +1,120 @@
+/* General styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+}
+
+/* Pantalla de inicio */
+#intro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: black; /* Fondo negro */
+}
+
+.logo-container {
+    text-align: center;
+}
+
+#logo {
+    max-width: 200px;
+    cursor: pointer;
+    filter: drop-shadow(0 0 20px rgba(87, 226, 6, 0.808)); /* Sombra verde para el logo */
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#logo:hover {
+    transform: scale(1.1); /* Efecto al pasar el ratón */
+}
+
+/* Página de login */
+#login, #register {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: black; /* Fondo negro */
+}
+
+.login-container, .register-container {
+    text-align: center;
+    color: white;
+    width: 90%;
+    max-width: 400px;
+    background-color: #290202; /* Fondo oscuro con matices rojos */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.login-logo, .register-logo {
+    max-width: 150px;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.7)); /* Resaltado amarillo */
+}
+
+h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: #ff4b5c; /* Título rojo */
+}
+
+p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+input {
+    display: block;
+    margin: 10px auto;
+    padding: 10px;
+    width: 80%;
+    border: 2px solid #ff4b5c; /* Borde rojo */
+    border-radius: 5px;
+    background-color: #444; /* Fondo gris oscuro */
+    color: white;
+}
+
+input:focus {
+    border-color: #ff6b81; /* Borde más claro al hacer foco */
+    outline: none;
+}
+
+button {
+    background-color: #ff4b5c; /* Rojo */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 80%;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #e8434e; /* Rojo más claro al pasar el ratón */
+}
+
+button.guest-btn {
+    background-color: transparent;
+    border: 2px solid #ff4b5c; /* Borde rojo */
+    margin-top: 20px;
+    color: #ff4b5c;
+}
+
+button.guest-btn:hover {
+    background-color: #ff4b5c;
+    color: white;
+}
+
+a {
+    color: #ff4b5c; /* Rojo */
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

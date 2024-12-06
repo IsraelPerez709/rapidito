@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapidito - Mototaxis</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            background-color: #ff6347;
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .btn-primary:hover {
+            background-color: #ff4500;
+        }
+        .mototaxi-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+        }
+        /* Estilo para el modal */
+        #mototaxi-modal, #arrived-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Asegura que el modal esté encima de otros elementos */
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            z-index: 10000; /* Asegura que el contenido del modal se muestre encima */
+        }
+
+        .modal-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .modal-content p {
+            font-size: 1.2rem;
+        }
+        .close-btn {
+            background-color: #ff6347;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            background-color: #ff4500;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="p-4">
+        <h1 class="text-3xl font-bold text-red-600">RAPIDITO</h1>
+        <p class="text-muted-foreground mb-4">Selecciona tu ubicación y destino en el mapa</p>
+        <button id="search-btn" class="btn-primary w-full">Buscar mototaxis cercanos</button>
+        <div id="loading" class="text-xl text-gray-500">Cargando mototaxis...</div>
+        <div id="map" class="mt-4"></div>
+        <div id="results" class="mt-4 hidden">
+            <h2 class="text-xl font-semibold">Mototaxis cercanos</h2>
+            <div id="results-list" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Modal de información del mototaxi -->
+    <div id="mototaxi-modal" class="flex">
+        <div class="modal-content">
+            <h2>Mototaxi en camino</h2>
+            <p id="mototaxi-message">El mototaxi está en camino.</p>
+            <p id="mototaxi-placa">Placa: </p>
+            <button id="close-modal" class="close-btn">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de llegada del mototaxi -->
+    <div id="arrived-modal" class="flex">
+        <div class="modal-content">
+            <h2>¡Mototaxi ha llegado!</h2>
+            <p>El mototaxi ya ha llegado a tu destino.</p>
+            <p>El motociclista te llamará a tu móvil.</p>
+            <button id="close-arrived-modal" class="close-btn">Cerrar</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, markers = [];
+        let userLocationMarker = null;
+        let destinationMarker = null;
+
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('map').setView([-16.4897, -68.1193], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Evento para seleccionar la ubicación del usuario
+            map.on("click", (e) => {
+                if (!userLocationMarker) {
+                    userLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map).bindPopup("Tu ubicación").openPopup();
+                } else {
+                    userLocationMarker.setLatLng(e.latlng).openPopup();
+                }
+            });
+
+            // Evento para seleccionar el destino
+            map.on("contextmenu", (e) => {
+                if (!destinationMarker) {
+                    destinationMarker = L.marker(e.latlng, { draggable: true, icon: L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/854/854878.png', iconSize: [32, 32] }) })
+                        .addTo(map)
+                        .bindPopup("Destino")
+                        .openPopup();
+                } else {
+                    destinationMarker.setLatLng(e.latlng).openPopup();
+                }
+            });
+        }
+
+        // Buscar mototaxis cercanos
+        document.getElementById("search-btn").addEventListener("click", () => {
+            if (!userLocationMarker || !destinationMarker) {
+                alert("Por favor, selecciona tu ubicación y destino en el mapa.");
+                return;
+            }
+
+            const userLocation = userLocationMarker.getLatLng();
+            const destination = destinationMarker.getLatLng();
+
+            map.setView(destination, 14);
+            showLoading(true);
+            setTimeout(() => {
+                simulateNearbyMototaxis(destination.lat, destination.lng);
+                showLoading(false);
+            }, 2000); // Simulamos un tiempo de carga
+        });
+
+        // Mostrar el estado de carga
+        function showLoading(state) {
+            const loading = document.getElementById("loading");
+            if (state) {
+                loading.style.display = "block";
+            } else {
+                loading.style.display = "none";
+            }
+        }
+
+        // Simular mototaxis cercanos
+        function simulateNearbyMototaxis(lat, lng) {
+            const mototaxis = [
+                { lat: lat + 0.01, lng: lng - 0.01, name: "Mototaxi 1", cost: Math.floor(Math.random() * 20) + 10, placa: "1234ABC" },
+                { lat: lat - 0.01, lng: lng + 0.01, name: "Mototaxi 2", cost: Math.floor(Math.random() * 20) + 10, placa: "5678XYZ" },
+                { lat: lat + 0.02, lng: lng - 0.02, name: "Mototaxi 3", cost: Math.floor(Math.random() * 20) + 10, placa: "9101LMN" },
+            ];
+
+            const resultsList = document.getElementById("results-list");
+            resultsList.innerHTML = "";
+            document.getElementById("results").classList.remove("hidden");
+
+            mototaxis.forEach((mototaxi) => {
+                const card = document.createElement("div");
+                card.className = "mototaxi-card";
+                card.innerHTML = `<p>${mototaxi.name}</p><p>Costo: ${mototaxi.cost} Bs</p>`;
+                card.addEventListener("click", () => selectMototaxi(mototaxi));
+                resultsList.appendChild(card);
+
+                const marker = L.marker([mototaxi.lat, mototaxi.lng]).addTo(map).bindPopup(mototaxi.name);
+                markers.push(marker);
+            });
+        }
+
+        // Seleccionar mototaxi
+        function selectMototaxi(mototaxi) {
+            // Mostrar modal con detalles del mototaxi
+            document.getElementById("mototaxi-message").innerText = `${mototaxi.name} está en camino.`;
+            document.getElementById("mototaxi-placa").innerText = `Placa: ${mototaxi.placa}`;
+            document.getElementById("mototaxi-modal").style.display = "flex";
+            
+            // Simular que el mototaxi ha llegado después de 5 segundos
+            setTimeout(() => {
+                showArrivedModal();
+            }, 5000); // Cambiar a los 5 segundos por ejemplo
+        }
+
+        // Mostrar el modal de llegada
+        function showArrivedModal() {
+            document.getElementById("mototaxi-modal").style.display = "none";
+            document.getElementById("arrived-modal").style.display = "flex";
+        }
+
+        // Cerrar modal
+        document.getElementById("close-modal").addEventListener("click", () => {
+            document.getElementById("mototaxi-modal").style.display = "none";
+        });
+
+        // Cerrar modal de llegada
+        document.getElementById("close-arrived-modal").addEventListener("click", () => {
+            document.getElementById("arrived-modal").style.display = "none";
+        });
+
+        initMap();
+    </script>
+</body>
+</html>
